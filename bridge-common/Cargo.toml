@@ -1,0 +1,13 @@
+[package]
+authors = ["Daniel Egger <daniel@eggers-club.de>"]
+edition = "2018"
+name = "bridge-common"
+version = "0.1.0"
+[dependencies]
+as-slice = "0.1.0"
+heapless = "0.5.0"
+postcard = "0.4.0"
+
+[dependencies.serde]
+default-features = false
+version = "1.0.99"

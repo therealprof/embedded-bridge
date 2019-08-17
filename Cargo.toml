@@ -1,0 +1,14 @@
+[package]
+name = "embedded-bridge"
+version = "0.1.0"
+authors = ["Daniel Egger <daniel@eggers-club.de>"]
+edition = "2018"
+
+[dependencies]
+
+[workspace]
+members = [
+    "bridge-common",
+    "bridge-host",
+    "bridge-firmware",
+]
