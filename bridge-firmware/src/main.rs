@@ -22,6 +22,10 @@ use postcard::{from_bytes, to_vec};
 use bridge_common::encoding::{Reply, Request};
 
 use stm32f0xx_hal::gpio::{gpioa, gpiob, gpiof};
+
+#[cfg(any(feature = "stm32f072",))]
+use stm32f0xx_hal::gpio::gpioc;
+
 use stm32f0xx_hal::gpio::{Floating, PushPull};
 use stm32f0xx_hal::gpio::{Input, Output};
 
@@ -76,6 +80,8 @@ macro_rules! GPIO {
 
 PORT!(gpioa);
 PORT!(gpiob);
+#[cfg(any(feature = "stm32f072",))]
+PORT!(gpioc);
 PORT!(gpiof);
 
 GPIO!(gpioa, PA0);
@@ -96,6 +102,14 @@ GPIO!(gpiob, PB3);
 GPIO!(gpiob, PB4);
 GPIO!(gpiof, PF0);
 GPIO!(gpiof, PF1);
+#[cfg(any(feature = "stm32f072",))]
+GPIO!(gpioc, PC6);
+#[cfg(any(feature = "stm32f072",))]
+GPIO!(gpioc, PC7);
+#[cfg(any(feature = "stm32f072",))]
+GPIO!(gpioc, PC8);
+#[cfg(any(feature = "stm32f072",))]
+GPIO!(gpioc, PC9);
 
 fn send_serial_reply<T: embedded_hal::serial::Write<u8>>(serial: &mut T, reply: &Reply) {
     let output: Vec<u8, U32> = to_vec(reply).unwrap();
@@ -121,6 +135,14 @@ enum GPIO {
     A14,
     B3,
     B4,
+    #[cfg(any(feature = "stm32f072"))]
+    C6,
+    #[cfg(any(feature = "stm32f072"))]
+    C7,
+    #[cfg(any(feature = "stm32f072"))]
+    C8,
+    #[cfg(any(feature = "stm32f072"))]
+    C9,
     F0,
     F1,
 }
@@ -143,6 +165,14 @@ fn map_gpios(name: &str) -> Option<GPIO> {
         "a14" => Some(GPIO::A14),
         "b3" => Some(GPIO::B3),
         "b4" => Some(GPIO::B4),
+        #[cfg(any(feature = "stm32f072"))]
+        "c6" => Some(GPIO::C6),
+        #[cfg(any(feature = "stm32f072"))]
+        "c7" => Some(GPIO::C7),
+        #[cfg(any(feature = "stm32f072"))]
+        "c8" => Some(GPIO::C8),
+        #[cfg(any(feature = "stm32f072"))]
+        "c9" => Some(GPIO::C9),
         "f0" => Some(GPIO::F0),
         "f1" => Some(GPIO::F1),
 
@@ -155,12 +185,23 @@ fn main() -> ! {
     if let (Some(mut p), Some(_cp)) = (stm32::Peripherals::take(), Peripherals::take()) {
         let mut rcc = p.RCC.configure().sysclk(48.mhz()).freeze(&mut p.FLASH);
 
-        // Obtain resources from GPIO ports A, B and F
+        // Obtain resources from GPIO ports A, B, C and F
         let mut gpioa = p.GPIOA.split(&mut rcc);
         let mut gpiob = p.GPIOB.split(&mut rcc);
+        #[cfg(any(feature = "stm32f072",))]
+        let mut gpioc = p.GPIOC.split(&mut rcc);
         let mut gpiof = p.GPIOF.split(&mut rcc);
 
+        #[cfg(any(feature = "stm32f042",))]
+        const HAS_I2C_ON_PORT_F: bool = true;
+        #[cfg(not(feature = "stm32f042",))]
+        const HAS_I2C_ON_PORT_F: bool = false;
+
+        #[cfg(any(feature = "stm32f042",))]
         let mut i2c: Option<hal::i2c::I2c<_, _, _>> = None;
+
+        #[cfg(not(feature = "stm32f042",))]
+        let i2c: Option<bool> = None;
 
         /* Set up serial port */
         let (tx, rx) = cortex_m::interrupt::free(|cs| {
@@ -206,6 +247,14 @@ fn main() -> ! {
                                         GPIO::A14 => gpioa.pa14.to_output_push_pull(),
                                         GPIO::B3 => gpiob.pb3.to_output_push_pull(),
                                         GPIO::B4 => gpiob.pb4.to_output_push_pull(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C6 => gpioc.pc6.to_output_push_pull(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C7 => gpioc.pc7.to_output_push_pull(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C8 => gpioc.pc8.to_output_push_pull(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C9 => gpioc.pc9.to_output_push_pull(),
                                         GPIO::F0 => gpiof.pf0.to_output_push_pull(),
                                         GPIO::F1 => gpiof.pf1.to_output_push_pull(),
                                     }
@@ -232,6 +281,14 @@ fn main() -> ! {
                                         GPIO::A14 => gpioa.pa14.toggle(),
                                         GPIO::B3 => gpiob.pb3.toggle(),
                                         GPIO::B4 => gpiob.pb4.toggle(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C6 => gpioc.pc6.toggle(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C7 => gpioc.pc7.toggle(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C8 => gpioc.pc8.toggle(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C9 => gpioc.pc9.toggle(),
                                         GPIO::F0 => gpiof.pf0.toggle(),
                                         GPIO::F1 => gpiof.pf1.toggle(),
                                     }
@@ -258,6 +315,14 @@ fn main() -> ! {
                                         GPIO::A14 => gpioa.pa14.set_low(),
                                         GPIO::B3 => gpiob.pb3.set_low(),
                                         GPIO::B4 => gpiob.pb4.set_low(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C6 => gpioc.pc6.set_low(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C7 => gpioc.pc7.set_low(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C8 => gpioc.pc8.set_low(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C9 => gpioc.pc9.set_low(),
                                         GPIO::F0 => gpiof.pf0.set_low(),
                                         GPIO::F1 => gpiof.pf1.set_low(),
                                     }
@@ -284,6 +349,14 @@ fn main() -> ! {
                                         GPIO::A14 => gpioa.pa14.set_high(),
                                         GPIO::B3 => gpiob.pb3.set_high(),
                                         GPIO::B4 => gpiob.pb4.set_high(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C6 => gpioc.pc6.set_high(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C7 => gpioc.pc7.set_high(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C8 => gpioc.pc8.set_high(),
+                                        #[cfg(any(feature = "stm32f072",))]
+                                        GPIO::C9 => gpioc.pc9.set_high(),
                                         GPIO::F0 => gpiof.pf0.set_high(),
                                         GPIO::F1 => gpiof.pf1.set_high(),
                                     }
@@ -297,31 +370,40 @@ fn main() -> ! {
                                 speed,
                             } = msg
                             {
-                                if scl_pin == "f1"
+                                if HAS_I2C_ON_PORT_F
+                                    && scl_pin == "f1"
                                     && sda_pin == "f0"
                                     && (speed >= 10 || speed <= 400)
                                 {
-                                    let (scl, sda) = cortex_m::interrupt::free(|cs| {
-                                        let gpiof = gpiof.clone();
-                                        let scl = gpiof
-                                            .pf1
-                                            .into_alternate_af1(cs)
-                                            .internal_pull_up(cs, true)
-                                            .set_open_drain(cs);
-                                        let sda = gpiof
-                                            .pf0
-                                            .into_alternate_af1(cs)
-                                            .internal_pull_up(cs, true)
-                                            .set_open_drain(cs);
-                                        (scl, sda)
-                                    });
+                                    #[cfg(any(feature = "stm32f042",))]
+                                    {
+                                        let (scl, sda) = cortex_m::interrupt::free(|cs| {
+                                            let gpiof = gpiof.clone();
+                                            let scl = gpiof
+                                                .pf1
+                                                .into_alternate_af1(cs)
+                                                .internal_pull_up(cs, true)
+                                                .set_open_drain(cs);
+                                            let sda = gpiof
+                                                .pf0
+                                                .into_alternate_af1(cs)
+                                                .internal_pull_up(cs, true)
+                                                .set_open_drain(cs);
+                                            (scl, sda)
+                                        });
 
-                                    let i2c1 = unsafe { transmute_copy(&p.I2C1) };
+                                        let i2c1 = unsafe { transmute_copy(&p.I2C1) };
 
-                                    // Setup I2C1
-                                    i2c = Some(I2c::i2c1(i2c1, (scl, sda), speed.khz(), &mut rcc));
+                                        // Setup I2C1
+                                        i2c = Some(I2c::i2c1(
+                                            i2c1,
+                                            (scl, sda),
+                                            speed.khz(),
+                                            &mut rcc,
+                                        ));
 
-                                    send_serial_reply(&mut serial, &Reply::Ok {});
+                                        send_serial_reply(&mut serial, &Reply::Ok {});
+                                    }
                                 } else {
                                     send_serial_reply(&mut serial, &Reply::NotImplemented {});
                                 }
@@ -331,9 +413,12 @@ fn main() -> ! {
                                 data,
                             } = msg
                             {
-                                if ident == "i2c1" && i2c.is_some() {
-                                    i2c.as_mut().map(|i2c| i2c.write(address, data));
-                                    send_serial_reply(&mut serial, &Reply::Ok {});
+                                if HAS_I2C_ON_PORT_F && ident == "i2c1" && i2c.is_some() {
+                                    #[cfg(any(feature = "stm32f042",))]
+                                    {
+                                        i2c.as_mut().map(|i2c| i2c.write(address, data));
+                                        send_serial_reply(&mut serial, &Reply::Ok {});
+                                    }
                                 } else {
                                     send_serial_reply(&mut serial, &Reply::NotImplemented {});
                                 }
