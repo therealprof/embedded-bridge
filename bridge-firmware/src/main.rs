@@ -8,7 +8,7 @@ use stm32f0xx_hal as hal;
 
 use cortex_m_rt::entry;
 
-use crate::hal::{i2c::I2c, prelude::*, serial::Serial, stm32};
+use crate::hal::{i2c::I2c, prelude::*, serial::Serial, spi::Spi, stm32};
 
 use cortex_m::peripheral::Peripherals;
 use nb::block;
@@ -141,6 +141,8 @@ fn main() -> ! {
         #[cfg(any(feature = "stm32f042",))]
         let mut i2c: Option<hal::i2c::I2c<_, _, _>> = None;
 
+        let mut spi: Option<hal::spi::Spi<_, _, _, _>> = None;
+
         #[cfg(not(feature = "stm32f042",))]
         let i2c: Option<bool> = None;
 
@@ -205,15 +207,9 @@ fn main() -> ! {
             let reply = match from_bytes::<Request>(buffer.deref()) {
                 Ok(msg) => {
                     match msg {
-                        Request::Version => {
-                            bridge_common::encoding::current_version()
-                        }
-                        Request::Clear => {
-                            Reply::Ok {}
-                        }
-                        Request::Reset => {
-                            Reply::NotImplemented {}
-                        }
+                        Request::Version => bridge_common::encoding::current_version(),
+                        Request::Clear => Reply::Ok {},
+                        Request::Reset => Reply::NotImplemented {},
                         Request::GpioInitPP { pin } => {
                             if let Some(p) = map_gpio(pin) {
                                 p.to_output_push_pull();
@@ -281,9 +277,9 @@ fn main() -> ! {
 
                                     // Setup I2C1
                                     i2c = Some(I2c::i2c1(i2c1, (scl, sda), speed.khz(), &mut rcc));
-
-                                    Reply::Ok {}
                                 }
+
+                                Reply::Ok {}
                             } else {
                                 Reply::NotImplemented {}
                             }
@@ -298,8 +294,65 @@ fn main() -> ! {
                                 #[cfg(any(feature = "stm32f042",))]
                                 {
                                     i2c.as_mut().map(|i2c| i2c.write(address, data));
-                                    Reply::Ok {}
                                 }
+
+                                Reply::Ok {}
+                            } else {
+                                Reply::NotImplemented {}
+                            }
+                        }
+
+                        Request::SPIInit {
+                            sck_pin,
+                            miso_pin,
+                            mosi_pin,
+                            speed,
+                        } => {
+                            if sck_pin == "a5"
+                                && miso_pin == "a6"
+                                && mosi_pin == "a7"
+                                && (speed >= 10 || speed <= 400)
+                            {
+                                let gpioa = gpioa.clone();
+                                let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
+                                    (
+                                        gpioa.pa5.into_alternate_af0(cs),
+                                        gpioa.pa6.into_alternate_af0(cs),
+                                        gpioa.pa7.into_alternate_af0(cs),
+                                    )
+                                });
+
+                                let spi1 = unsafe { transmute_copy(&p.SPI1) };
+
+                                use embedded_hal::spi::{Mode, Phase, Polarity};
+
+                                /// SPI mode that is needed for this crate
+                                ///
+                                /// Provided for convenience
+                                const MODE: Mode = Mode {
+                                    polarity: Polarity::IdleHigh,
+                                    phase: Phase::CaptureOnSecondTransition,
+                                };
+
+                                // Setup SPI1
+                                spi = Some(Spi::spi1(
+                                    spi1,
+                                    (sck, miso, mosi),
+                                    MODE,
+                                    speed.khz(),
+                                    &mut rcc,
+                                ));
+
+                                Reply::Ok {}
+                            } else {
+                                Reply::NotImplemented {}
+                            }
+                        }
+
+                        Request::SPIWrite { ident, data } => {
+                            if ident == "spi1" && spi.is_some() {
+                                spi.as_mut().map(|spi| spi.write(data));
+                                Reply::Ok {}
                             } else {
                                 Reply::NotImplemented {}
                             }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const VERSION: u8 = 4;
+pub const VERSION: u8 = 5;
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum Request<'p> {
@@ -29,6 +29,16 @@ pub enum Request<'p> {
     I2CWrite {
         ident: &'p str,
         address: u8,
+        data: &'p [u8],
+    },
+    SPIInit {
+        sck_pin: &'p str,
+        miso_pin: &'p str,
+        mosi_pin: &'p str,
+        speed: u32,
+    },
+    SPIWrite {
+        ident: &'p str,
         data: &'p [u8],
     },
 }
@@ -88,6 +98,22 @@ pub fn i2c_write<'p>(ident: &'p str, address: u8, data: &'p [u8]) -> Request<'p>
     Request::I2CWrite {
         ident,
         address,
+        data,
+    }
+}
+
+pub fn spi_init<'p>(sck_pin: &'p str, miso_pin: &'p str, mosi_pin: &'p str, speed: u32) -> Request<'p> {
+    Request::SPIInit {
+        sck_pin,
+        miso_pin,
+        mosi_pin,
+        speed,
+    }
+}
+
+pub fn spi_write<'p>(ident: &'p str, data: &'p [u8]) -> Request<'p> {
+    Request::SPIWrite {
+        ident,
         data,
     }
 }
