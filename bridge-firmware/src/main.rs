@@ -202,89 +202,97 @@ fn main() -> ! {
 
             let reply = match from_bytes::<Request>(buffer.deref()) {
                 Ok(msg) => {
-                    if let Request::GpioInitPP { pin } = msg {
-                        if let Some(p) = map_gpio(pin) {
-                            p.to_output_push_pull();
-                            Reply::Ok {}
-                        } else {
-                            Reply::NotImplemented {}
-                        }
-                    } else if let Request::GpioToggle { pin } = msg {
-                        if let Some(p) = map_gpio(pin) {
-                            p.toggle();
-                            Reply::Ok {}
-                        } else {
-                            Reply::NotImplemented {}
-                        }
-                    } else if let Request::GpioSetLow { pin } = msg {
-                        if let Some(p) = map_gpio(pin) {
-                            p.set_low();
-                            Reply::Ok {}
-                        } else {
-                            Reply::NotImplemented {}
-                        }
-                    } else if let Request::GpioSetHigh { pin } = msg {
-                        if let Some(p) = map_gpio(pin) {
-                            p.set_high();
-                            Reply::Ok {}
-                        } else {
-                            Reply::NotImplemented {}
-                        }
-                    } else if let Request::I2CInit {
-                        scl_pin,
-                        sda_pin,
-                        speed,
-                    } = msg
-                    {
-                        if HAS_I2C_ON_PORT_F
-                            && scl_pin == "f1"
-                            && sda_pin == "f0"
-                            && (speed >= 10 || speed <= 400)
-                        {
-                            #[cfg(any(feature = "stm32f042",))]
-                            {
-                                let gpiof = gpiof.clone();
-                                let (scl, sda) = cortex_m::interrupt::free(|cs| {
-                                    let scl = gpiof
-                                        .pf1
-                                        .into_alternate_af1(cs)
-                                        .internal_pull_up(cs, true)
-                                        .set_open_drain(cs);
-                                    let sda = gpiof
-                                        .pf0
-                                        .into_alternate_af1(cs)
-                                        .internal_pull_up(cs, true)
-                                        .set_open_drain(cs);
-                                    (scl, sda)
-                                });
-
-                                let i2c1 = unsafe { transmute_copy(&p.I2C1) };
-
-                                // Setup I2C1
-                                i2c = Some(I2c::i2c1(i2c1, (scl, sda), speed.khz(), &mut rcc));
-
+                    match msg {
+                        Request::GpioInitPP { pin } => {
+                            if let Some(p) = map_gpio(pin) {
+                                p.to_output_push_pull();
                                 Reply::Ok {}
+                            } else {
+                                Reply::NotImplemented {}
                             }
-                        } else {
-                            Reply::NotImplemented {}
                         }
-                    } else if let Request::I2CWrite {
-                        ident,
-                        address,
-                        data,
-                    } = msg
-                    {
-                        if HAS_I2C_ON_PORT_F && ident == "i2c1" && i2c.is_some() {
-                            #[cfg(any(feature = "stm32f042",))]
-                            {
-                                i2c.as_mut().map(|i2c| i2c.write(address, data));
+
+                        Request::GpioToggle { pin } => {
+                            if let Some(p) = map_gpio(pin) {
+                                p.toggle();
                                 Reply::Ok {}
+                            } else {
+                                Reply::NotImplemented {}
                             }
-                        } else {
-                            Reply::NotImplemented {}
                         }
-                    } else {
-                        Reply::NotImplemented {}
+
+                        Request::GpioSetLow { pin } => {
+                            if let Some(p) = map_gpio(pin) {
+                                p.set_low();
+                                Reply::Ok {}
+                            } else {
+                                Reply::NotImplemented {}
+                            }
+                        }
+
+                        Request::GpioSetHigh { pin } => {
+                            if let Some(p) = map_gpio(pin) {
+                                p.set_high();
+                                Reply::Ok {}
+                            } else {
+                                Reply::NotImplemented {}
+                            }
+                        }
+
+                        Request::I2CInit {
+                            scl_pin,
+                            sda_pin,
+                            speed,
+                        } => {
+                            if HAS_I2C_ON_PORT_F
+                                && scl_pin == "f1"
+                                && sda_pin == "f0"
+                                && (speed >= 10 || speed <= 400)
+                            {
+                                #[cfg(any(feature = "stm32f042",))]
+                                {
+                                    let gpiof = gpiof.clone();
+                                    let (scl, sda) = cortex_m::interrupt::free(|cs| {
+                                        let scl = gpiof
+                                            .pf1
+                                            .into_alternate_af1(cs)
+                                            .internal_pull_up(cs, true)
+                                            .set_open_drain(cs);
+                                        let sda = gpiof
+                                            .pf0
+                                            .into_alternate_af1(cs)
+                                            .internal_pull_up(cs, true)
+                                            .set_open_drain(cs);
+                                        (scl, sda)
+                                    });
+
+                                    let i2c1 = unsafe { transmute_copy(&p.I2C1) };
+
+                                    // Setup I2C1
+                                    i2c = Some(I2c::i2c1(i2c1, (scl, sda), speed.khz(), &mut rcc));
+
+                                    Reply::Ok {}
+                                }
+                            } else {
+                                Reply::NotImplemented {}
+                            }
+                        }
+
+                        Request::I2CWrite {
+                            ident,
+                            address,
+                            data,
+                        } => {
+                            if HAS_I2C_ON_PORT_F && ident == "i2c1" && i2c.is_some() {
+                                #[cfg(any(feature = "stm32f042",))]
+                                {
+                                    i2c.as_mut().map(|i2c| i2c.write(address, data));
+                                    Reply::Ok {}
+                                }
+                            } else {
+                                Reply::NotImplemented {}
+                            }
+                        }
                     }
                 }
                 Err(err) => match err {
