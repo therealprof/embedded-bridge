@@ -12,7 +12,16 @@ use ssd1306::Builder;
 
 use core::fmt::Write;
 
+use simplelog::*;
+
 fn main() -> io::Result<()> {
+    TermLogger::init(
+        LevelFilter::Debug,
+        Config::default(),
+        simplelog::TerminalMode::Mixed,
+    )
+    .unwrap();
+
     for arg in env::args_os().skip(1) {
         let mut port = serial::open(&arg).unwrap();
         interact(&mut port)?;

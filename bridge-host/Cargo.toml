@@ -9,9 +9,11 @@ embedded-hal = "0.2.3"
 heapless = "0.5.0"
 postcard = "0.4.0"
 serial = "0.4.0"
+log = "0.4.8"
 
 [dev-dependencies]
 ssd1306 = "0.2.6"
+simplelog = "^0.7.0"
 
 [dependencies.bridge-common]
 path = "../bridge-common"

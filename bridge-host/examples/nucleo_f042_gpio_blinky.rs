@@ -7,7 +7,11 @@ use serial::prelude::*;
 
 use embedded_hal::digital::v1::OutputPin;
 
+use simplelog::*;
+
 fn main() -> io::Result<()> {
+    TermLogger::init(LevelFilter::Debug, Config::default(), TerminalMode::Mixed).unwrap();
+
     for arg in env::args_os().skip(1) {
         let mut port = serial::open(&arg).unwrap();
         interact(&mut port)?;
