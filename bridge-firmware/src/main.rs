@@ -301,11 +301,11 @@ fn main() -> ! {
                 },
             };
 
+            /* Clear the buffer after parsing a complete message */
+            buffer.clear();
+
             /* Send reply over serial connection */
             send_serial_reply(&mut serial, &reply);
-
-            /* Clear the buffer */
-            buffer.clear();
         }
     }
 

@@ -29,6 +29,7 @@ pub enum Request<'p> {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum Reply<'a> {
     Ok,
+    Incomplete,
     NotImplemented,
     VerboseErr { err: &'a str },
     ReceiveErr { bytes: u8 },
