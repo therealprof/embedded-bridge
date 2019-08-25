@@ -3,11 +3,15 @@ authors = ["Daniel Egger <daniel@eggers-club.de>"]
 edition = "2018"
 name = "bridge-host"
 version = "0.1.0"
+
 [dependencies]
 embedded-hal = "0.2.3"
 heapless = "0.5.0"
 postcard = "0.4.0"
 serial = "0.4.0"
+
+[dev-dependencies]
+ssd1306 = "0.2.6"
 
 [dependencies.bridge-common]
 path = "../bridge-common"
