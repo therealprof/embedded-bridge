@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+pub const VERSION: u8 = 4;
+
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum Request<'p> {
+    Version,
     /// Clear all receive buffers, a good idea to use before critical operations
     Clear,
     /// Reset the target into a clean state (may not be supported)
@@ -35,9 +38,18 @@ pub enum Reply<'a> {
     Ok,
     Incomplete,
     NotImplemented,
+    Version { version: u8 },
     VerboseErr { err: &'a str },
     ReceiveErr { bytes: u8 },
     Err { bytes: u8 },
+}
+
+pub fn version() -> Request<'static> {
+    Request::Version
+}
+
+pub fn current_version() -> Reply<'static> {
+    Reply::Version { version: VERSION }
 }
 
 pub fn clear() -> Request<'static> {

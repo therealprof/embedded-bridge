@@ -205,8 +205,10 @@ fn main() -> ! {
             let reply = match from_bytes::<Request>(buffer.deref()) {
                 Ok(msg) => {
                     match msg {
+                        Request::Version => {
+                            bridge_common::encoding::current_version()
+                        }
                         Request::Clear => {
-                            buffer.clear();
                             Reply::Ok {}
                         }
                         Request::Reset => {

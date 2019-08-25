@@ -1,5 +1,6 @@
 use bridge_common::encoding::{
-    clear, reset, gpio_init_pp, gpio_sethigh, gpio_setlow, gpio_toggle, i2c_init, i2c_write, Reply, Request,
+    clear, gpio_init_pp, gpio_sethigh, gpio_setlow, gpio_toggle, i2c_init, i2c_write, reset,
+    version, Reply, Request,
 };
 use heapless::{consts::*, Vec};
 use postcard::{from_bytes, to_vec};
@@ -7,6 +8,28 @@ use std::io::{self, Read, Write};
 use std::ops::Deref;
 
 type BufferLength = U64;
+
+pub fn send_version<T: Read + Write>(port: &mut T) -> io::Result<u8> {
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&version()).unwrap();
+
+    log::debug!(
+        "Will send {} bytes containing {:?}",
+        req.len(),
+        from_bytes::<Request>(req.deref()).unwrap()
+    );
+
+    port.write_all(&req)?;
+    let bytes = port.read(&mut buf[..])?;
+    let res = from_bytes::<Reply>(buf.deref());
+
+    log::debug!("Received {:?} bytes containing {:?}", bytes, res);
+
+    match res.unwrap() {
+        Reply::Version { version } => Ok(version),
+        _ => Err(io::Error::from(io::ErrorKind::InvalidData)),
+    }
+}
 
 pub fn send_clear<T: Read + Write>(port: &mut T) -> io::Result<()> {
     let mut buf: Vec<u8, BufferLength> = (0..31).collect();

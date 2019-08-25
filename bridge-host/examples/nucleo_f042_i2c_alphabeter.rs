@@ -44,6 +44,8 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
 
     let port = Arc::new(Mutex::new(Box::from(port)));
 
+    bridge_host::common::assert_version(port.clone());
+
     let mut pin = bridge_host::gpio::PushPullPin::new("b3".into(), port.clone());
     let i2c =
         bridge_host::i2c::I2C::new("i2c1".into(), "f1".into(), "f0".into(), 400, port.clone());
