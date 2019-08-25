@@ -6,9 +6,11 @@ use postcard::{from_bytes, to_vec};
 use std::io::{self, Read, Write};
 use std::ops::Deref;
 
+type BufferLength = U64;
+
 pub fn send_clear<T: Read + Write>(port: &mut T) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&clear()).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&clear()).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -26,8 +28,8 @@ pub fn send_clear<T: Read + Write>(port: &mut T) -> io::Result<()> {
 }
 
 pub fn send_reset<T: Read + Write>(port: &mut T) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&reset()).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&reset()).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -45,8 +47,8 @@ pub fn send_reset<T: Read + Write>(port: &mut T) -> io::Result<()> {
 }
 
 pub fn send_gpio_init_pp<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&gpio_init_pp(pin)).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&gpio_init_pp(pin)).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -64,8 +66,8 @@ pub fn send_gpio_init_pp<T: Read + Write>(port: &mut T, pin: &str) -> io::Result
 }
 
 pub fn send_gpio_toggle<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&gpio_toggle(pin)).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&gpio_toggle(pin)).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -83,8 +85,8 @@ pub fn send_gpio_toggle<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<
 }
 
 pub fn send_gpio_high<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&gpio_sethigh(pin)).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&gpio_sethigh(pin)).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -102,8 +104,8 @@ pub fn send_gpio_high<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()
 }
 
 pub fn send_gpio_low<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&gpio_setlow(pin)).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&gpio_setlow(pin)).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -127,8 +129,8 @@ pub fn send_i2c_init<T: Read + Write>(
     sda_pin: &str,
     speed: u32,
 ) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&i2c_init(scl_pin, sda_pin, speed)).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&i2c_init(scl_pin, sda_pin, speed)).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",
@@ -151,8 +153,8 @@ pub fn send_i2c_write<T: Read + Write>(
     addr: u8,
     data: &[u8],
 ) -> io::Result<()> {
-    let mut buf: Vec<u8, U32> = (0..31).collect();
-    let req: Vec<u8, U32> = to_vec(&i2c_write(ident, addr, data)).unwrap();
+    let mut buf: Vec<u8, BufferLength> = (0..31).collect();
+    let req: Vec<u8, BufferLength> = to_vec(&i2c_write(ident, addr, data)).unwrap();
 
     log::debug!(
         "Will send {} bytes containing {:?}",

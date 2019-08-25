@@ -29,6 +29,8 @@ use stm32f0xx_hal::gpio::gpioc;
 use stm32f0xx_hal::gpio::{Floating, PushPull};
 use stm32f0xx_hal::gpio::{Input, Output};
 
+type BufferLength = U64;
+
 trait PORTExt {
     fn clone(&self) -> Self;
 }
@@ -112,7 +114,7 @@ GPIO!(gpioc, PC8);
 GPIO!(gpioc, PC9);
 
 fn send_serial_reply<T: embedded_hal::serial::Write<u8>>(serial: &mut T, reply: &Reply) {
-    let output: Vec<u8, U32> = to_vec(reply).unwrap();
+    let output: Vec<u8, BufferLength> = to_vec(reply).unwrap();
     for c in &output {
         serial.write(*c).ok();
     }
@@ -152,7 +154,7 @@ fn main() -> ! {
 
         let mut serial = Serial::usart2(p.USART2, (tx, rx), 115_200.bps(), &mut rcc);
 
-        let mut buffer: Vec<u8, U32> = Default::default();
+        let mut buffer: Vec<u8, BufferLength> = Default::default();
 
         let map_gpio = |name: &str| -> Option<&dyn GPIOExt> {
             match name {
