@@ -116,8 +116,8 @@ fn send_serial_reply<T: embedded_hal::serial::Write<u8>>(serial: &mut T, reply: 
     for c in &output {
         serial.write(*c).ok();
     }
+    serial.flush().ok();
 }
-
 
 #[entry]
 fn main() -> ! {
@@ -196,113 +196,104 @@ fn main() -> ! {
                         },
                     );
                     buffer.clear();
-                } else {
-                    match from_bytes::<Request>(buffer.deref()) {
-                        Ok(msg) => {
-                            if let Request::GpioInitPP { pin } = msg {
-                                if let Some(p) = map_gpio(pin) {
-                                    p.to_output_push_pull();
-                                    send_serial_reply(&mut serial, &Reply::Ok {});
-                                } else {
-                                    send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                                }
-                            } else if let Request::GpioToggle { pin } = msg {
-                                if let Some(p) = map_gpio(pin) {
-                                    p.toggle();
-                                    send_serial_reply(&mut serial, &Reply::Ok {});
-                                } else {
-                                    send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                                }
-                            } else if let Request::GpioSetLow { pin } = msg {
-                                if let Some(p) = map_gpio(pin) {
-                                    p.set_low();
-                                    send_serial_reply(&mut serial, &Reply::Ok {});
-                                } else {
-                                    send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                                }
-                            } else if let Request::GpioSetHigh { pin } = msg {
-                                if let Some(p) = map_gpio(pin) {
-                                    p.set_high();
-                                    send_serial_reply(&mut serial, &Reply::Ok {});
-                                } else {
-                                    send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                                }
-                            } else if let Request::I2CInit {
-                                scl_pin,
-                                sda_pin,
-                                speed,
-                            } = msg
-                            {
-                                if HAS_I2C_ON_PORT_F
-                                    && scl_pin == "f1"
-                                    && sda_pin == "f0"
-                                    && (speed >= 10 || speed <= 400)
-                                {
-                                    #[cfg(any(feature = "stm32f042",))]
-                                    {
-                                        let gpiof = gpiof.clone();
-                                        let (scl, sda) = cortex_m::interrupt::free(|cs| {
-                                            let scl = gpiof
-                                                .pf1
-                                                .into_alternate_af1(cs)
-                                                .internal_pull_up(cs, true)
-                                                .set_open_drain(cs);
-                                            let sda = gpiof
-                                                .pf0
-                                                .into_alternate_af1(cs)
-                                                .internal_pull_up(cs, true)
-                                                .set_open_drain(cs);
-                                            (scl, sda)
-                                        });
-
-                                        let i2c1 = unsafe { transmute_copy(&p.I2C1) };
-
-                                        // Setup I2C1
-                                        i2c = Some(I2c::i2c1(
-                                            i2c1,
-                                            (scl, sda),
-                                            speed.khz(),
-                                            &mut rcc,
-                                        ));
-
-                                        send_serial_reply(&mut serial, &Reply::Ok {});
-                                    }
-                                } else {
-                                    send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                                }
-                            } else if let Request::I2CWrite {
-                                ident,
-                                address,
-                                data,
-                            } = msg
-                            {
-                                if HAS_I2C_ON_PORT_F && ident == "i2c1" && i2c.is_some() {
-                                    #[cfg(any(feature = "stm32f042",))]
-                                    {
-                                        i2c.as_mut().map(|i2c| i2c.write(address, data));
-                                        send_serial_reply(&mut serial, &Reply::Ok {});
-                                    }
-                                } else {
-                                    send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                                }
-                            } else {
-                                send_serial_reply(&mut serial, &Reply::NotImplemented {});
-                            }
-                            buffer.clear();
-                        }
-                        Err(err) => match err {
-                            postcard::Error::DeserializeUnexpectedEnd => {}
-                            _ => {
-                                send_serial_reply(
-                                    &mut serial,
-                                    &Reply::VerboseErr { err: "some error" },
-                                );
-                            }
-                        },
-                    }
+                    continue;
                 }
-            } else {
-                serial.flush().ok();
+            }
+
+            match from_bytes::<Request>(buffer.deref()) {
+                Ok(msg) => {
+                    if let Request::GpioInitPP { pin } = msg {
+                        if let Some(p) = map_gpio(pin) {
+                            p.to_output_push_pull();
+                            send_serial_reply(&mut serial, &Reply::Ok {});
+                        } else {
+                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        }
+                    } else if let Request::GpioToggle { pin } = msg {
+                        if let Some(p) = map_gpio(pin) {
+                            p.toggle();
+                            send_serial_reply(&mut serial, &Reply::Ok {});
+                        } else {
+                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        }
+                    } else if let Request::GpioSetLow { pin } = msg {
+                        if let Some(p) = map_gpio(pin) {
+                            p.set_low();
+                            send_serial_reply(&mut serial, &Reply::Ok {});
+                        } else {
+                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        }
+                    } else if let Request::GpioSetHigh { pin } = msg {
+                        if let Some(p) = map_gpio(pin) {
+                            p.set_high();
+                            send_serial_reply(&mut serial, &Reply::Ok {});
+                        } else {
+                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        }
+                    } else if let Request::I2CInit {
+                        scl_pin,
+                        sda_pin,
+                        speed,
+                    } = msg
+                    {
+                        if HAS_I2C_ON_PORT_F
+                            && scl_pin == "f1"
+                            && sda_pin == "f0"
+                            && (speed >= 10 || speed <= 400)
+                        {
+                            #[cfg(any(feature = "stm32f042",))]
+                            {
+                                let gpiof = gpiof.clone();
+                                let (scl, sda) = cortex_m::interrupt::free(|cs| {
+                                    let scl = gpiof
+                                        .pf1
+                                        .into_alternate_af1(cs)
+                                        .internal_pull_up(cs, true)
+                                        .set_open_drain(cs);
+                                    let sda = gpiof
+                                        .pf0
+                                        .into_alternate_af1(cs)
+                                        .internal_pull_up(cs, true)
+                                        .set_open_drain(cs);
+                                    (scl, sda)
+                                });
+
+                                let i2c1 = unsafe { transmute_copy(&p.I2C1) };
+
+                                // Setup I2C1
+                                i2c = Some(I2c::i2c1(i2c1, (scl, sda), speed.khz(), &mut rcc));
+
+                                send_serial_reply(&mut serial, &Reply::Ok {});
+                            }
+                        } else {
+                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        }
+                    } else if let Request::I2CWrite {
+                        ident,
+                        address,
+                        data,
+                    } = msg
+                    {
+                        if HAS_I2C_ON_PORT_F && ident == "i2c1" && i2c.is_some() {
+                            #[cfg(any(feature = "stm32f042",))]
+                            {
+                                i2c.as_mut().map(|i2c| i2c.write(address, data));
+                                send_serial_reply(&mut serial, &Reply::Ok {});
+                            }
+                        } else {
+                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        }
+                    } else {
+                        send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                    }
+                    buffer.clear();
+                }
+                Err(err) => match err {
+                    postcard::Error::DeserializeUnexpectedEnd => {}
+                    _ => {
+                        send_serial_reply(&mut serial, &Reply::VerboseErr { err: "some error" });
+                    }
+                },
             }
         }
     }
