@@ -30,20 +30,20 @@ use stm32f0xx_hal::gpio::{Floating, PushPull};
 use stm32f0xx_hal::gpio::{Input, Output};
 
 trait PORTExt {
-    fn clone(&mut self) -> Self;
+    fn clone(&self) -> Self;
 }
 
 trait GPIOExt {
     fn to_output_push_pull(&self);
-    fn toggle(&mut self);
-    fn set_high(&mut self);
-    fn set_low(&mut self);
+    fn toggle(&self);
+    fn set_high(&self);
+    fn set_low(&self);
 }
 
 macro_rules! PORT {
     ($port:ident) => {
         impl PORTExt for $port::Parts {
-            fn clone(&mut self) -> Self {
+            fn clone(&self) -> Self {
                 unsafe { transmute_copy(&self) }
             }
         }
@@ -60,17 +60,17 @@ macro_rules! GPIO {
                 });
             }
 
-            fn toggle(&mut self) {
+            fn toggle(&self) {
                 let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
                 pin.toggle();
             }
 
-            fn set_high(&mut self) {
+            fn set_high(&self) {
                 let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
                 pin.set_high();
             }
 
-            fn set_low(&mut self) {
+            fn set_low(&self) {
                 let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
                 pin.set_low();
             }
@@ -118,67 +118,6 @@ fn send_serial_reply<T: embedded_hal::serial::Write<u8>>(serial: &mut T, reply: 
     }
 }
 
-enum GPIO {
-    A0,
-    A1,
-    A3,
-    A4,
-    A5,
-    A6,
-    A7,
-    A8,
-    A9,
-    A10,
-    A11,
-    A12,
-    A13,
-    A14,
-    B3,
-    B4,
-    #[cfg(any(feature = "stm32f072"))]
-    C6,
-    #[cfg(any(feature = "stm32f072"))]
-    C7,
-    #[cfg(any(feature = "stm32f072"))]
-    C8,
-    #[cfg(any(feature = "stm32f072"))]
-    C9,
-    F0,
-    F1,
-}
-
-fn map_gpios(name: &str) -> Option<GPIO> {
-    match name {
-        "a0" => Some(GPIO::A0),
-        "a1" => Some(GPIO::A1),
-        "a3" => Some(GPIO::A3),
-        "a4" => Some(GPIO::A4),
-        "a5" => Some(GPIO::A5),
-        "a6" => Some(GPIO::A6),
-        "a7" => Some(GPIO::A7),
-        "a8" => Some(GPIO::A8),
-        "a9" => Some(GPIO::A9),
-        "a10" => Some(GPIO::A10),
-        "a11" => Some(GPIO::A11),
-        "a12" => Some(GPIO::A12),
-        "a13" => Some(GPIO::A13),
-        "a14" => Some(GPIO::A14),
-        "b3" => Some(GPIO::B3),
-        "b4" => Some(GPIO::B4),
-        #[cfg(any(feature = "stm32f072"))]
-        "c6" => Some(GPIO::C6),
-        #[cfg(any(feature = "stm32f072"))]
-        "c7" => Some(GPIO::C7),
-        #[cfg(any(feature = "stm32f072"))]
-        "c8" => Some(GPIO::C8),
-        #[cfg(any(feature = "stm32f072"))]
-        "c9" => Some(GPIO::C9),
-        "f0" => Some(GPIO::F0),
-        "f1" => Some(GPIO::F1),
-
-        _ => None,
-    }
-}
 
 #[entry]
 fn main() -> ! {
@@ -186,11 +125,11 @@ fn main() -> ! {
         let mut rcc = p.RCC.configure().sysclk(48.mhz()).freeze(&mut p.FLASH);
 
         // Obtain resources from GPIO ports A, B, C and F
-        let mut gpioa = p.GPIOA.split(&mut rcc);
-        let mut gpiob = p.GPIOB.split(&mut rcc);
+        let gpioa = p.GPIOA.split(&mut rcc);
+        let gpiob = p.GPIOB.split(&mut rcc);
         #[cfg(any(feature = "stm32f072",))]
-        let mut gpioc = p.GPIOC.split(&mut rcc);
-        let mut gpiof = p.GPIOF.split(&mut rcc);
+        let gpioc = p.GPIOC.split(&mut rcc);
+        let gpiof = p.GPIOF.split(&mut rcc);
 
         #[cfg(any(feature = "stm32f042",))]
         const HAS_I2C_ON_PORT_F: bool = true;
@@ -215,6 +154,38 @@ fn main() -> ! {
 
         let mut buffer: Vec<u8, U32> = Default::default();
 
+        let map_gpio = |name: &str| -> Option<&dyn GPIOExt> {
+            match name {
+                "a0" => Some(&gpioa.pa0),
+                "a1" => Some(&gpioa.pa1),
+                "a3" => Some(&gpioa.pa3),
+                "a4" => Some(&gpioa.pa4),
+                "a5" => Some(&gpioa.pa5),
+                "a6" => Some(&gpioa.pa6),
+                "a7" => Some(&gpioa.pa7),
+                "a8" => Some(&gpioa.pa8),
+                "a9" => Some(&gpioa.pa9),
+                "a10" => Some(&gpioa.pa10),
+                "a11" => Some(&gpioa.pa11),
+                "a12" => Some(&gpioa.pa12),
+                "a13" => Some(&gpioa.pa13),
+                "a14" => Some(&gpioa.pa14),
+                "b3" => Some(&gpiob.pb3),
+                "b4" => Some(&gpiob.pb4),
+                #[cfg(any(feature = "stm32f072"))]
+                "c6" => Some(&gpioc.pc6),
+                #[cfg(any(feature = "stm32f072"))]
+                "c7" => Some(&gpioc.pc7),
+                #[cfg(any(feature = "stm32f072"))]
+                "c8" => Some(&gpioc.pc8),
+                #[cfg(any(feature = "stm32f072"))]
+                "c9" => Some(&gpioc.pc9),
+                "f0" => Some(&gpiof.pf0),
+                "f1" => Some(&gpiof.pf1),
+                _ => None,
+            }
+        };
+
         loop {
             if let Ok(received) = block!(serial.read()) {
                 if buffer.push(received).is_err() {
@@ -229,137 +200,29 @@ fn main() -> ! {
                     match from_bytes::<Request>(buffer.deref()) {
                         Ok(msg) => {
                             if let Request::GpioInitPP { pin } = msg {
-                                if let Some(pin) = map_gpios(pin) {
-                                    match pin {
-                                        GPIO::A0 => gpioa.pa0.to_output_push_pull(),
-                                        GPIO::A1 => gpioa.pa1.to_output_push_pull(),
-                                        GPIO::A3 => gpioa.pa3.to_output_push_pull(),
-                                        GPIO::A4 => gpioa.pa4.to_output_push_pull(),
-                                        GPIO::A5 => gpioa.pa5.to_output_push_pull(),
-                                        GPIO::A6 => gpioa.pa6.to_output_push_pull(),
-                                        GPIO::A7 => gpioa.pa7.to_output_push_pull(),
-                                        GPIO::A8 => gpioa.pa8.to_output_push_pull(),
-                                        GPIO::A9 => gpioa.pa9.to_output_push_pull(),
-                                        GPIO::A10 => gpioa.pa10.to_output_push_pull(),
-                                        GPIO::A11 => gpioa.pa11.to_output_push_pull(),
-                                        GPIO::A12 => gpioa.pa12.to_output_push_pull(),
-                                        GPIO::A13 => gpioa.pa13.to_output_push_pull(),
-                                        GPIO::A14 => gpioa.pa14.to_output_push_pull(),
-                                        GPIO::B3 => gpiob.pb3.to_output_push_pull(),
-                                        GPIO::B4 => gpiob.pb4.to_output_push_pull(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C6 => gpioc.pc6.to_output_push_pull(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C7 => gpioc.pc7.to_output_push_pull(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C8 => gpioc.pc8.to_output_push_pull(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C9 => gpioc.pc9.to_output_push_pull(),
-                                        GPIO::F0 => gpiof.pf0.to_output_push_pull(),
-                                        GPIO::F1 => gpiof.pf1.to_output_push_pull(),
-                                    }
+                                if let Some(p) = map_gpio(pin) {
+                                    p.to_output_push_pull();
                                     send_serial_reply(&mut serial, &Reply::Ok {});
                                 } else {
                                     send_serial_reply(&mut serial, &Reply::NotImplemented {});
                                 }
                             } else if let Request::GpioToggle { pin } = msg {
-                                if let Some(pin) = map_gpios(pin) {
-                                    match pin {
-                                        GPIO::A0 => gpioa.pa0.toggle(),
-                                        GPIO::A1 => gpioa.pa1.toggle(),
-                                        GPIO::A3 => gpioa.pa3.toggle(),
-                                        GPIO::A4 => gpioa.pa4.toggle(),
-                                        GPIO::A5 => gpioa.pa5.toggle(),
-                                        GPIO::A6 => gpioa.pa6.toggle(),
-                                        GPIO::A7 => gpioa.pa7.toggle(),
-                                        GPIO::A8 => gpioa.pa8.toggle(),
-                                        GPIO::A9 => gpioa.pa9.toggle(),
-                                        GPIO::A10 => gpioa.pa10.toggle(),
-                                        GPIO::A11 => gpioa.pa11.toggle(),
-                                        GPIO::A12 => gpioa.pa12.toggle(),
-                                        GPIO::A13 => gpioa.pa13.toggle(),
-                                        GPIO::A14 => gpioa.pa14.toggle(),
-                                        GPIO::B3 => gpiob.pb3.toggle(),
-                                        GPIO::B4 => gpiob.pb4.toggle(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C6 => gpioc.pc6.toggle(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C7 => gpioc.pc7.toggle(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C8 => gpioc.pc8.toggle(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C9 => gpioc.pc9.toggle(),
-                                        GPIO::F0 => gpiof.pf0.toggle(),
-                                        GPIO::F1 => gpiof.pf1.toggle(),
-                                    }
+                                if let Some(p) = map_gpio(pin) {
+                                    p.toggle();
                                     send_serial_reply(&mut serial, &Reply::Ok {});
                                 } else {
                                     send_serial_reply(&mut serial, &Reply::NotImplemented {});
                                 }
                             } else if let Request::GpioSetLow { pin } = msg {
-                                if let Some(pin) = map_gpios(pin) {
-                                    match pin {
-                                        GPIO::A0 => gpioa.pa0.set_low(),
-                                        GPIO::A1 => gpioa.pa1.set_low(),
-                                        GPIO::A3 => gpioa.pa3.set_low(),
-                                        GPIO::A4 => gpioa.pa4.set_low(),
-                                        GPIO::A5 => gpioa.pa5.set_low(),
-                                        GPIO::A6 => gpioa.pa6.set_low(),
-                                        GPIO::A7 => gpioa.pa7.set_low(),
-                                        GPIO::A8 => gpioa.pa8.set_low(),
-                                        GPIO::A9 => gpioa.pa9.set_low(),
-                                        GPIO::A10 => gpioa.pa10.set_low(),
-                                        GPIO::A11 => gpioa.pa11.set_low(),
-                                        GPIO::A12 => gpioa.pa12.set_low(),
-                                        GPIO::A13 => gpioa.pa13.set_low(),
-                                        GPIO::A14 => gpioa.pa14.set_low(),
-                                        GPIO::B3 => gpiob.pb3.set_low(),
-                                        GPIO::B4 => gpiob.pb4.set_low(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C6 => gpioc.pc6.set_low(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C7 => gpioc.pc7.set_low(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C8 => gpioc.pc8.set_low(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C9 => gpioc.pc9.set_low(),
-                                        GPIO::F0 => gpiof.pf0.set_low(),
-                                        GPIO::F1 => gpiof.pf1.set_low(),
-                                    }
+                                if let Some(p) = map_gpio(pin) {
+                                    p.set_low();
                                     send_serial_reply(&mut serial, &Reply::Ok {});
                                 } else {
                                     send_serial_reply(&mut serial, &Reply::NotImplemented {});
                                 }
                             } else if let Request::GpioSetHigh { pin } = msg {
-                                if let Some(pin) = map_gpios(pin) {
-                                    match pin {
-                                        GPIO::A0 => gpioa.pa0.set_high(),
-                                        GPIO::A1 => gpioa.pa1.set_high(),
-                                        GPIO::A3 => gpioa.pa3.set_high(),
-                                        GPIO::A4 => gpioa.pa4.set_high(),
-                                        GPIO::A5 => gpioa.pa5.set_high(),
-                                        GPIO::A6 => gpioa.pa6.set_high(),
-                                        GPIO::A7 => gpioa.pa7.set_high(),
-                                        GPIO::A8 => gpioa.pa8.set_high(),
-                                        GPIO::A9 => gpioa.pa9.set_high(),
-                                        GPIO::A10 => gpioa.pa10.set_high(),
-                                        GPIO::A11 => gpioa.pa11.set_high(),
-                                        GPIO::A12 => gpioa.pa12.set_high(),
-                                        GPIO::A13 => gpioa.pa13.set_high(),
-                                        GPIO::A14 => gpioa.pa14.set_high(),
-                                        GPIO::B3 => gpiob.pb3.set_high(),
-                                        GPIO::B4 => gpiob.pb4.set_high(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C6 => gpioc.pc6.set_high(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C7 => gpioc.pc7.set_high(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C8 => gpioc.pc8.set_high(),
-                                        #[cfg(any(feature = "stm32f072",))]
-                                        GPIO::C9 => gpioc.pc9.set_high(),
-                                        GPIO::F0 => gpiof.pf0.set_high(),
-                                        GPIO::F1 => gpiof.pf1.set_high(),
-                                    }
+                                if let Some(p) = map_gpio(pin) {
+                                    p.set_high();
                                     send_serial_reply(&mut serial, &Reply::Ok {});
                                 } else {
                                     send_serial_reply(&mut serial, &Reply::NotImplemented {});
@@ -377,8 +240,8 @@ fn main() -> ! {
                                 {
                                     #[cfg(any(feature = "stm32f042",))]
                                     {
+                                        let gpiof = gpiof.clone();
                                         let (scl, sda) = cortex_m::interrupt::free(|cs| {
-                                            let gpiof = gpiof.clone();
                                             let scl = gpiof
                                                 .pf1
                                                 .into_alternate_af1(cs)
