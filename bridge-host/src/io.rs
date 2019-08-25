@@ -1,10 +1,48 @@
 use bridge_common::encoding::{
-    gpio_init_pp, gpio_sethigh, gpio_setlow, gpio_toggle, i2c_init, i2c_write, Reply, Request,
+    clear, reset, gpio_init_pp, gpio_sethigh, gpio_setlow, gpio_toggle, i2c_init, i2c_write, Reply, Request,
 };
 use heapless::{consts::*, Vec};
 use postcard::{from_bytes, to_vec};
 use std::io::{self, Read, Write};
 use std::ops::Deref;
+
+pub fn send_clear<T: Read + Write>(port: &mut T) -> io::Result<()> {
+    let mut buf: Vec<u8, U32> = (0..31).collect();
+    let req: Vec<u8, U32> = to_vec(&clear()).unwrap();
+
+    log::debug!(
+        "Will send {} bytes containing {:?}",
+        req.len(),
+        from_bytes::<Request>(req.deref()).unwrap()
+    );
+
+    port.write_all(&req)?;
+    let bytes = port.read(&mut buf[..])?;
+    let res = from_bytes::<Reply>(buf.deref());
+
+    log::debug!("Received {:?} bytes containing {:?}", bytes, res);
+
+    Ok(())
+}
+
+pub fn send_reset<T: Read + Write>(port: &mut T) -> io::Result<()> {
+    let mut buf: Vec<u8, U32> = (0..31).collect();
+    let req: Vec<u8, U32> = to_vec(&reset()).unwrap();
+
+    log::debug!(
+        "Will send {} bytes containing {:?}",
+        req.len(),
+        from_bytes::<Request>(req.deref()).unwrap()
+    );
+
+    port.write_all(&req)?;
+    let bytes = port.read(&mut buf[..])?;
+    let res = from_bytes::<Reply>(buf.deref());
+
+    log::debug!("Received {:?} bytes containing {:?}", bytes, res);
+
+    Ok(())
+}
 
 pub fn send_gpio_init_pp<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
     let mut buf: Vec<u8, U32> = (0..31).collect();

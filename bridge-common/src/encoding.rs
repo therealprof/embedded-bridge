@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum Request<'p> {
+    /// Clear all receive buffers, a good idea to use before critical operations
+    Clear,
+    /// Reset the target into a clean state (may not be supported)
+    Reset,
     GpioInitPP {
         pin: &'p str,
     },
@@ -34,6 +38,14 @@ pub enum Reply<'a> {
     VerboseErr { err: &'a str },
     ReceiveErr { bytes: u8 },
     Err { bytes: u8 },
+}
+
+pub fn clear() -> Request<'static> {
+    Request::Clear
+}
+
+pub fn reset() -> Request<'static> {
+    Request::Reset
 }
 
 pub fn gpio_init_pp(pin: &str) -> Request {

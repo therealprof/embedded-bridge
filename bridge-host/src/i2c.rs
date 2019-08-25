@@ -2,7 +2,7 @@ use embedded_hal::blocking::i2c;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 
-use crate::io::{send_i2c_init, send_i2c_write};
+use crate::io::{send_clear, send_i2c_init, send_i2c_write};
 
 pub struct I2C<T> {
     ident: String,
@@ -20,6 +20,7 @@ where
         speed: u32,
         channel: Arc<Mutex<Box<T>>>,
     ) -> Self {
+        send_clear(&mut *channel.lock().unwrap()).ok();
         send_i2c_init(&mut *channel.lock().unwrap(), &ident, &scl, &sda, speed).ok();
 
         I2C { ident, channel }

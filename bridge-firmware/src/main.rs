@@ -203,6 +203,13 @@ fn main() -> ! {
             let reply = match from_bytes::<Request>(buffer.deref()) {
                 Ok(msg) => {
                     match msg {
+                        Request::Clear => {
+                            buffer.clear();
+                            Reply::Ok {}
+                        }
+                        Request::Reset => {
+                            Reply::NotImplemented {}
+                        }
                         Request::GpioInitPP { pin } => {
                             if let Some(p) = map_gpio(pin) {
                                 p.to_output_push_pull();
