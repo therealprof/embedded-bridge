@@ -200,35 +200,35 @@ fn main() -> ! {
                 }
             }
 
-            match from_bytes::<Request>(buffer.deref()) {
+            let reply = match from_bytes::<Request>(buffer.deref()) {
                 Ok(msg) => {
                     if let Request::GpioInitPP { pin } = msg {
                         if let Some(p) = map_gpio(pin) {
                             p.to_output_push_pull();
-                            send_serial_reply(&mut serial, &Reply::Ok {});
+                            Reply::Ok {}
                         } else {
-                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                            Reply::NotImplemented {}
                         }
                     } else if let Request::GpioToggle { pin } = msg {
                         if let Some(p) = map_gpio(pin) {
                             p.toggle();
-                            send_serial_reply(&mut serial, &Reply::Ok {});
+                            Reply::Ok {}
                         } else {
-                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                            Reply::NotImplemented {}
                         }
                     } else if let Request::GpioSetLow { pin } = msg {
                         if let Some(p) = map_gpio(pin) {
                             p.set_low();
-                            send_serial_reply(&mut serial, &Reply::Ok {});
+                            Reply::Ok {}
                         } else {
-                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                            Reply::NotImplemented {}
                         }
                     } else if let Request::GpioSetHigh { pin } = msg {
                         if let Some(p) = map_gpio(pin) {
                             p.set_high();
-                            send_serial_reply(&mut serial, &Reply::Ok {});
+                            Reply::Ok {}
                         } else {
-                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                            Reply::NotImplemented {}
                         }
                     } else if let Request::I2CInit {
                         scl_pin,
@@ -263,10 +263,10 @@ fn main() -> ! {
                                 // Setup I2C1
                                 i2c = Some(I2c::i2c1(i2c1, (scl, sda), speed.khz(), &mut rcc));
 
-                                send_serial_reply(&mut serial, &Reply::Ok {});
+                                Reply::Ok {}
                             }
                         } else {
-                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                            Reply::NotImplemented {}
                         }
                     } else if let Request::I2CWrite {
                         ident,
@@ -278,23 +278,26 @@ fn main() -> ! {
                             #[cfg(any(feature = "stm32f042",))]
                             {
                                 i2c.as_mut().map(|i2c| i2c.write(address, data));
-                                send_serial_reply(&mut serial, &Reply::Ok {});
+                                Reply::Ok {}
                             }
                         } else {
-                            send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                            Reply::NotImplemented {}
                         }
                     } else {
-                        send_serial_reply(&mut serial, &Reply::NotImplemented {});
+                        Reply::NotImplemented {}
                     }
-                    buffer.clear();
                 }
                 Err(err) => match err {
-                    postcard::Error::DeserializeUnexpectedEnd => {}
-                    _ => {
-                        send_serial_reply(&mut serial, &Reply::VerboseErr { err: "some error" });
-                    }
+                    postcard::Error::DeserializeUnexpectedEnd => continue,
+                    _ => Reply::VerboseErr { err: "some error" },
                 },
-            }
+            };
+
+            /* Send reply over serial connection */
+            send_serial_reply(&mut serial, &reply);
+
+            /* Clear the buffer */
+            buffer.clear();
         }
     }
 
