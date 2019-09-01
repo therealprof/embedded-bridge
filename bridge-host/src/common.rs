@@ -16,6 +16,9 @@ pub fn assert_version<T: Read + Write>(channel: Arc<Mutex<Box<T>>>) {
             bridge_common::encoding::VERSION
         );
     } else {
-        log::info!("Bridge protocol version {}", bridge_common::encoding::VERSION);
+        log::info!(
+            "Bridge protocol version {}",
+            bridge_common::encoding::VERSION
+        );
     }
 }

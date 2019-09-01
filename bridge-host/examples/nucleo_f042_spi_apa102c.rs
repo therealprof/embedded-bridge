@@ -3,8 +3,8 @@ use std::io::{self};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use smart_leds::{SmartLedsWrite, RGB};
 use apa102_spi::*;
+use smart_leds::{SmartLedsWrite, RGB};
 
 use serial::prelude::*;
 
@@ -42,12 +42,22 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
 
     bridge_host::common::assert_version(port.clone());
 
-    let spi =
-        bridge_host::spi::SPI::new("spi1".into(), "a5".into(), "a6".into(), "a7".into(), 1000, port.clone());
-
+    let spi = bridge_host::spi::SPI::new(
+        "spi1".into(),
+        "a5".into(),
+        "a6".into(),
+        "a7".into(),
+        1000,
+        port.clone(),
+    );
 
     let mut apa = Apa102::new(spi);
-    let data: [RGB<u8>; 4] = [(0, 0, 0).into(), (255, 0, 0).into(), (0, 255, 0).into(), (0, 0, 255).into()];
+    let data: [RGB<u8>; 4] = [
+        (0, 0, 0).into(),
+        (255, 0, 0).into(),
+        (0, 255, 0).into(),
+        (0, 0, 255).into(),
+    ];
 
     apa.write(data.iter().cloned()).unwrap();
 

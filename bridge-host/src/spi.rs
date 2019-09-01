@@ -22,7 +22,15 @@ where
         channel: Arc<Mutex<Box<T>>>,
     ) -> Self {
         send_clear(&mut *channel.lock().unwrap()).ok();
-        send_spi_init(&mut *channel.lock().unwrap(), &ident, &sck, &miso, &mosi, speed).ok();
+        send_spi_init(
+            &mut *channel.lock().unwrap(),
+            &ident,
+            &sck,
+            &miso,
+            &mosi,
+            speed,
+        )
+        .ok();
 
         SPI { ident, channel }
     }
