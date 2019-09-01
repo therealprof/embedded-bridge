@@ -14,7 +14,6 @@ use cortex_m::peripheral::Peripherals;
 use nb::block;
 
 use core::mem::transmute_copy;
-use core::ops::Deref;
 
 use heapless::{consts::*, Vec};
 use postcard::{from_bytes, to_vec};
@@ -204,7 +203,7 @@ fn main() -> ! {
                 }
             }
 
-            let reply = match from_bytes::<Request>(buffer.deref()) {
+            let reply = match from_bytes::<Request>(&buffer) {
                 Ok(msg) => {
                     match msg {
                         Request::Version => bridge_common::encoding::current_version(),
