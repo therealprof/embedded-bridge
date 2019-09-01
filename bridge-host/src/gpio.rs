@@ -1,4 +1,4 @@
-use embedded_hal::digital::v1::OutputPin;
+use embedded_hal::digital::v2::OutputPin;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 
@@ -13,11 +13,11 @@ impl<T> PushPullPin<T>
 where
     T: Read + Write,
 {
-    pub fn new(pinname: String, channel: Arc<Mutex<Box<T>>>) -> Self {
+    pub fn new(pinname: String, channel: Arc<Mutex<Box<T>>>) -> Result<Self, ()> {
         send_clear(&mut *channel.lock().unwrap()).ok();
-        send_gpio_init_pp(&mut *channel.lock().unwrap(), &pinname).ok();
-
-        PushPullPin { channel, pinname }
+        let res = send_gpio_init_pp(&mut *channel.lock().unwrap(), &pinname);
+        res.map(|_| PushPullPin { channel, pinname })
+            .map_err(|_| ())
     }
 }
 
@@ -25,11 +25,13 @@ impl<T> OutputPin for PushPullPin<T>
 where
     T: Read + Write,
 {
-    fn set_high(&mut self) {
-        send_gpio_high(&mut *self.channel.lock().unwrap(), &self.pinname).ok();
+    type Error = ();
+
+    fn set_high(&mut self) -> Result<(), ()> {
+        send_gpio_high(&mut *self.channel.lock().unwrap(), &self.pinname).map_err(|_| ())
     }
 
-    fn set_low(&mut self) {
-        send_gpio_low(&mut *self.channel.lock().unwrap(), &self.pinname).ok();
+    fn set_low(&mut self) -> Result<(), ()> {
+        send_gpio_low(&mut *self.channel.lock().unwrap(), &self.pinname).map_err(|_| ())
     }
 }

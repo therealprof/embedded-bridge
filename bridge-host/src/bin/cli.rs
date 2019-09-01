@@ -5,10 +5,9 @@ use std::time::Duration;
 
 use serial::prelude::*;
 
-use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-use embedded_hal::digital::v1::OutputPin;
+use embedded_hal::digital::v2::OutputPin;
 
 use simplelog::*;
 use std::collections::HashMap;
@@ -81,7 +80,12 @@ fn main() -> io::Result<()> {
                                     rest[1].to_string(),
                                     port.clone(),
                                 );
-                                gpios.insert(rest[1].to_string(), pin);
+
+                                if let Ok(pin) = pin {
+                                    gpios.insert(rest[1].to_string(), pin);
+                                } else {
+                                    println!("Could not initialise GPIO {}", &rest[1].to_string());
+                                }
                             }
                             _ => println!("Expecting arguments"),
                         },
@@ -89,8 +93,12 @@ fn main() -> io::Result<()> {
                             "set" => {
                                 if let Some(ref mut pin) = gpios.get_mut(&rest[1].to_string()) {
                                     match rest[2] {
-                                        "low" | "off" => pin.set_low(),
-                                        "high" | "on" => pin.set_high(),
+                                        "low" | "off" => pin
+                                            .set_low()
+                                            .unwrap_or_else(|_| println!("Couldn't set state")),
+                                        "high" | "on" => pin
+                                            .set_high()
+                                            .unwrap_or_else(|_| println!("Couldn't set state")),
                                         _ => println!("Expecting low or high as signal state"),
                                     }
                                 } else {

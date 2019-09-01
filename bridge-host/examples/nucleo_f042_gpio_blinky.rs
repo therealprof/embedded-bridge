@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serial::prelude::*;
 
-use embedded_hal::digital::v1::OutputPin;
+use embedded_hal::digital::v2::OutputPin;
 
 use simplelog::*;
 
@@ -36,13 +36,14 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
 
     bridge_host::common::assert_version(port.clone());
 
-    let mut pin = bridge_host::gpio::PushPullPin::new("b3".into(), port.clone());
+    let mut pin = bridge_host::gpio::PushPullPin::new("b3".into(), port.clone())
+        .expect("Could not initialise GPIO");
 
     loop {
-        pin.set_low();
+        pin.set_low().ok();
         std::thread::sleep(std::time::Duration::from_millis(500));
 
-        pin.set_high();
+        pin.set_high().ok();
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
 }

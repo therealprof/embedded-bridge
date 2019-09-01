@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serial::prelude::*;
 
-use embedded_hal::digital::v1::OutputPin;
+use embedded_hal::digital::v2::OutputPin;
 
 use ssd1306::mode::TerminalMode;
 use ssd1306::Builder;
@@ -46,7 +46,9 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
 
     bridge_host::common::assert_version(port.clone());
 
-    let mut pin = bridge_host::gpio::PushPullPin::new("b3".into(), port.clone());
+    let mut pin = bridge_host::gpio::PushPullPin::new("b3".into(), port.clone())
+        .expect("Could initialiase GPIO");
+
     let i2c =
         bridge_host::i2c::I2C::new("i2c1".into(), "f1".into(), "f0".into(), 400, port.clone());
 
@@ -58,7 +60,7 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
     let _ = disp.clear();
 
     loop {
-        pin.set_low();
+        pin.set_low().ok();
 
         for c in 97..123 {
             let _ = disp.write_str(unsafe { core::str::from_utf8_unchecked(&[c]) });
@@ -67,6 +69,6 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
             let _ = disp.write_str(unsafe { core::str::from_utf8_unchecked(&[c]) });
         }
 
-        pin.set_high();
+        pin.set_high().ok();
     }
 }

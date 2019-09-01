@@ -4,7 +4,7 @@ use bridge_common::encoding::{
 };
 use heapless::{consts::*, Vec};
 use postcard::{from_bytes, to_vec};
-use std::io::{self, Read, Write};
+use std::io::{Error, ErrorKind, Read, Result, Write};
 
 type BufferLength = U64;
 
@@ -14,7 +14,7 @@ fn setup_receive_buffer() -> Vec<u8, BufferLength> {
     buf
 }
 
-pub fn send_version<T: Read + Write>(port: &mut T) -> io::Result<u8> {
+pub fn send_version<T: Read + Write>(port: &mut T) -> Result<u8> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&version()).unwrap();
 
@@ -32,11 +32,11 @@ pub fn send_version<T: Read + Write>(port: &mut T) -> io::Result<u8> {
 
     match res.unwrap() {
         Reply::Version { version } => Ok(version),
-        _ => Err(io::Error::from(io::ErrorKind::InvalidData)),
+        _ => Err(Error::from(ErrorKind::InvalidData)),
     }
 }
 
-pub fn send_clear<T: Read + Write>(port: &mut T) -> io::Result<()> {
+pub fn send_clear<T: Read + Write>(port: &mut T) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&clear()).unwrap();
 
@@ -52,10 +52,13 @@ pub fn send_clear<T: Read + Write>(port: &mut T) -> io::Result<()> {
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
-pub fn send_reset<T: Read + Write>(port: &mut T) -> io::Result<()> {
+pub fn send_reset<T: Read + Write>(port: &mut T) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&reset()).unwrap();
 
@@ -71,10 +74,13 @@ pub fn send_reset<T: Read + Write>(port: &mut T) -> io::Result<()> {
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
-pub fn send_gpio_init_pp<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
+pub fn send_gpio_init_pp<T: Read + Write>(port: &mut T, pin: &str) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&gpio_init_pp(pin)).unwrap();
 
@@ -90,10 +96,13 @@ pub fn send_gpio_init_pp<T: Read + Write>(port: &mut T, pin: &str) -> io::Result
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
-pub fn send_gpio_toggle<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
+pub fn send_gpio_toggle<T: Read + Write>(port: &mut T, pin: &str) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&gpio_toggle(pin)).unwrap();
 
@@ -109,10 +118,13 @@ pub fn send_gpio_toggle<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
-pub fn send_gpio_high<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
+pub fn send_gpio_high<T: Read + Write>(port: &mut T, pin: &str) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&gpio_sethigh(pin)).unwrap();
 
@@ -128,10 +140,13 @@ pub fn send_gpio_high<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
-pub fn send_gpio_low<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()> {
+pub fn send_gpio_low<T: Read + Write>(port: &mut T, pin: &str) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&gpio_setlow(pin)).unwrap();
 
@@ -147,7 +162,10 @@ pub fn send_gpio_low<T: Read + Write>(port: &mut T, pin: &str) -> io::Result<()>
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
 pub fn send_i2c_init<T: Read + Write>(
@@ -156,7 +174,7 @@ pub fn send_i2c_init<T: Read + Write>(
     scl_pin: &str,
     sda_pin: &str,
     speed: u32,
-) -> io::Result<()> {
+) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&i2c_init(scl_pin, sda_pin, speed)).unwrap();
 
@@ -172,7 +190,10 @@ pub fn send_i2c_init<T: Read + Write>(
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
 pub fn send_i2c_write<T: Read + Write>(
@@ -180,7 +201,7 @@ pub fn send_i2c_write<T: Read + Write>(
     ident: &str,
     addr: u8,
     data: &[u8],
-) -> io::Result<()> {
+) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&i2c_write(ident, addr, data)).unwrap();
 
@@ -196,7 +217,10 @@ pub fn send_i2c_write<T: Read + Write>(
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
 pub fn send_spi_init<T: Read + Write>(
@@ -206,7 +230,7 @@ pub fn send_spi_init<T: Read + Write>(
     miso_pin: &str,
     mosi_pin: &str,
     speed: u32,
-) -> io::Result<()> {
+) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&spi_init(sck_pin, miso_pin, mosi_pin, speed)).unwrap();
 
@@ -222,10 +246,13 @@ pub fn send_spi_init<T: Read + Write>(
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
 
-pub fn send_spi_write<T: Read + Write>(port: &mut T, ident: &str, data: &[u8]) -> io::Result<()> {
+pub fn send_spi_write<T: Read + Write>(port: &mut T, ident: &str, data: &[u8]) -> Result<()> {
     let mut buf = setup_receive_buffer();
     let req: Vec<u8, BufferLength> = to_vec(&spi_write(ident, data)).unwrap();
 
@@ -241,5 +268,8 @@ pub fn send_spi_write<T: Read + Write>(port: &mut T, ident: &str, data: &[u8]) -
 
     log::debug!("Received {:?} bytes containing {:?}", bytes, res);
 
-    Ok(())
+    match res {
+        Ok(Reply::Ok) => Ok(()),
+        _ => Err(Error::new(ErrorKind::Other, "Hardware error")),
+    }
 }
