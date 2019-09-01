@@ -10,6 +10,7 @@ use rustyline::Editor;
 
 use embedded_hal::digital::v1::OutputPin;
 
+use simplelog::*;
 use std::collections::HashMap;
 
 fn usage() {
@@ -22,11 +23,23 @@ fn usage() {
 }
 
 fn main() -> io::Result<()> {
+    TermLogger::init(
+        LevelFilter::Debug,
+        ConfigBuilder::new()
+            .add_filter_ignore_str("rustyline")
+            .build(),
+        TerminalMode::Mixed,
+    )
+    .unwrap();
+
     println!("Welcome to the embedded-bridge CLI tool");
 
     let serial = &env::args_os().nth(1).unwrap();
 
-    println!("Connecting to the device via (USB<->)serial port at {:?}", &serial);
+    println!(
+        "Connecting to the device via (USB<->)serial port at {:?}",
+        &serial
+    );
 
     let mut port = serial::open(&serial).unwrap();
     port.reconfigure(&|settings| {

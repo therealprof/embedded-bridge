@@ -10,12 +10,12 @@ log = "0.4.8"
 postcard = "0.4.0"
 serial = "0.4.0"
 rustyline = "5.0.2"
+simplelog = "0.7.1"
 
 [dependencies.bridge-common]
 path = "../bridge-common"
 
 [dev-dependencies]
-simplelog = "0.7.1"
 smart-leds = "0.3.0"
 ssd1306 = "0.2.6"
 apa102-spi = "0.2.1"
