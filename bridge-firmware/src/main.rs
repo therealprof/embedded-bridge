@@ -52,8 +52,12 @@ macro_rules! PORT {
 }
 
 macro_rules! GPIO {
-    ($port:ident, $pin:ident) => {
-        impl GPIOExt for $port::$pin<Input<Floating>> {
+    ($port:ident, $pin:ident, $name:ident) => {
+        struct $pin($port::$pin<Input<Floating>>);
+
+        let $name = $pin($port.$name);
+
+        impl GPIOExt for $pin {
             fn to_output_push_pull(&self) {
                 cortex_m::interrupt::free(|cs| {
                     let pin: $port::$pin<Input<Floating>> = unsafe { transmute_copy(&self) };
@@ -79,39 +83,6 @@ macro_rules! GPIO {
     };
 }
 
-PORT!(gpioa);
-PORT!(gpiob);
-#[cfg(any(feature = "stm32f072",))]
-PORT!(gpioc);
-PORT!(gpiof);
-
-GPIO!(gpioa, PA0);
-GPIO!(gpioa, PA1);
-GPIO!(gpioa, PA3);
-GPIO!(gpioa, PA4);
-GPIO!(gpioa, PA5);
-GPIO!(gpioa, PA6);
-GPIO!(gpioa, PA7);
-GPIO!(gpioa, PA8);
-GPIO!(gpioa, PA9);
-GPIO!(gpioa, PA10);
-GPIO!(gpioa, PA11);
-GPIO!(gpioa, PA12);
-GPIO!(gpioa, PA13);
-GPIO!(gpioa, PA14);
-GPIO!(gpiob, PB3);
-GPIO!(gpiob, PB4);
-GPIO!(gpiof, PF0);
-GPIO!(gpiof, PF1);
-#[cfg(any(feature = "stm32f072",))]
-GPIO!(gpioc, PC6);
-#[cfg(any(feature = "stm32f072",))]
-GPIO!(gpioc, PC7);
-#[cfg(any(feature = "stm32f072",))]
-GPIO!(gpioc, PC8);
-#[cfg(any(feature = "stm32f072",))]
-GPIO!(gpioc, PC9);
-
 fn send_serial_reply<T: embedded_hal::serial::Write<u8>>(serial: &mut T, reply: &Reply) {
     let output: Vec<u8, BufferLength> = to_vec(reply).unwrap();
     for c in &output {
@@ -131,6 +102,12 @@ fn main() -> ! {
         #[cfg(any(feature = "stm32f072",))]
         let gpioc = p.GPIOC.split(&mut rcc);
         let gpiof = p.GPIOF.split(&mut rcc);
+
+        PORT!(gpioa);
+        PORT!(gpiob);
+        #[cfg(any(feature = "stm32f072",))]
+        PORT!(gpioc);
+        PORT!(gpiof);
 
         #[cfg(any(feature = "stm32f042",))]
         const HAS_I2C_ON_PORT_F: bool = true;
@@ -153,40 +130,71 @@ fn main() -> ! {
             (pa2.into_alternate_af1(cs), pa15.into_alternate_af1(cs))
         });
 
+        let gpioa_clone = gpioa.clone();
+        let gpiof_clone = gpiof.clone();
+
         let mut serial = Serial::usart2(p.USART2, (tx, rx), 115_200.bps(), &mut rcc);
 
         let mut buffer: Vec<u8, BufferLength> = Default::default();
 
-        let map_gpio = |name: &str| -> Option<&dyn GPIOExt> {
+        GPIO!(gpioa, PA0, pa0);
+        GPIO!(gpioa, PA1, pa1);
+        GPIO!(gpioa, PA3, pa3);
+        GPIO!(gpioa, PA4, pa4);
+        GPIO!(gpioa, PA5, pa5);
+        GPIO!(gpioa, PA6, pa6);
+        GPIO!(gpioa, PA7, pa7);
+        GPIO!(gpioa, PA8, pa8);
+        GPIO!(gpioa, PA9, pa9);
+        GPIO!(gpioa, PA10, pa10);
+        GPIO!(gpioa, PA11, pa11);
+        GPIO!(gpioa, PA12, pa12);
+        GPIO!(gpioa, PA13, pa13);
+        GPIO!(gpioa, PA14, pa14);
+        GPIO!(gpiob, PB3, pb3);
+        GPIO!(gpiob, PB4, pb4);
+        GPIO!(gpiof, PF0, pf0);
+        GPIO!(gpiof, PF1, pf1);
+        #[cfg(any(feature = "stm32f072",))]
+        GPIO!(gpioc, PC6, pc6);
+        #[cfg(any(feature = "stm32f072",))]
+        GPIO!(gpioc, PC7, pc7);
+        #[cfg(any(feature = "stm32f072",))]
+        GPIO!(gpioc, PC8, pc8);
+        #[cfg(any(feature = "stm32f072",))]
+        GPIO!(gpioc, PC9, pc9);
+
+        let apply_gpio = |name: &str, f: &dyn Fn(&dyn GPIOExt)| -> Reply {
             match name {
-                "a0" => Some(&gpioa.pa0),
-                "a1" => Some(&gpioa.pa1),
-                "a3" => Some(&gpioa.pa3),
-                "a4" => Some(&gpioa.pa4),
-                "a5" => Some(&gpioa.pa5),
-                "a6" => Some(&gpioa.pa6),
-                "a7" => Some(&gpioa.pa7),
-                "a8" => Some(&gpioa.pa8),
-                "a9" => Some(&gpioa.pa9),
-                "a10" => Some(&gpioa.pa10),
-                "a11" => Some(&gpioa.pa11),
-                "a12" => Some(&gpioa.pa12),
-                "a13" => Some(&gpioa.pa13),
-                "a14" => Some(&gpioa.pa14),
-                "b3" => Some(&gpiob.pb3),
-                "b4" => Some(&gpiob.pb4),
+                "a0" => f(&pa0),
+                "a1" => f(&pa1),
+                "a3" => f(&pa3),
+                "a4" => f(&pa4),
+                "a5" => f(&pa5),
+                "a6" => f(&pa6),
+                "a7" => f(&pa7),
+                "a8" => f(&pa8),
+                "a9" => f(&pa9),
+                "a10" => f(&pa10),
+                "a11" => f(&pa11),
+                "a12" => f(&pa12),
+                "a13" => f(&pa13),
+                "a14" => f(&pa14),
+                "b3" => f(&pb3),
+                "b4" => f(&pb4),
                 #[cfg(any(feature = "stm32f072"))]
-                "c6" => Some(&gpioc.pc6),
+                "c6" => f(&pc6),
                 #[cfg(any(feature = "stm32f072"))]
-                "c7" => Some(&gpioc.pc7),
+                "c7" => f(&pc7),
                 #[cfg(any(feature = "stm32f072"))]
-                "c8" => Some(&gpioc.pc8),
+                "c8" => f(&pc8),
                 #[cfg(any(feature = "stm32f072"))]
-                "c9" => Some(&gpioc.pc9),
-                "f0" => Some(&gpiof.pf0),
-                "f1" => Some(&gpiof.pf1),
-                _ => None,
+                "c9" => f(&pc9),
+                "f0" => f(&pf0),
+                "f1" => f(&pf1),
+                _ => return Reply::NotImplemented,
             }
+            Reply::Ok
         };
 
         loop {
@@ -210,39 +218,19 @@ fn main() -> ! {
                         Request::Clear => Reply::Ok {},
                         Request::Reset => Reply::NotImplemented {},
                         Request::GpioInitPP { pin } => {
-                            if let Some(p) = map_gpio(pin) {
-                                p.to_output_push_pull();
-                                Reply::Ok {}
-                            } else {
-                                Reply::NotImplemented {}
-                            }
+                            apply_gpio(pin, &|p: &dyn GPIOExt| p.to_output_push_pull())
                         }
 
                         Request::GpioToggle { pin } => {
-                            if let Some(p) = map_gpio(pin) {
-                                p.toggle();
-                                Reply::Ok {}
-                            } else {
-                                Reply::NotImplemented {}
-                            }
+                            apply_gpio(pin, &|p: &dyn GPIOExt| p.toggle())
                         }
 
                         Request::GpioSetLow { pin } => {
-                            if let Some(p) = map_gpio(pin) {
-                                p.set_low();
-                                Reply::Ok {}
-                            } else {
-                                Reply::NotImplemented {}
-                            }
+                            apply_gpio(pin, &|p: &dyn GPIOExt| p.set_low())
                         }
 
                         Request::GpioSetHigh { pin } => {
-                            if let Some(p) = map_gpio(pin) {
-                                p.set_high();
-                                Reply::Ok {}
-                            } else {
-                                Reply::NotImplemented {}
-                            }
+                            apply_gpio(pin, &|p: &dyn GPIOExt| p.set_high())
                         }
 
                         Request::I2CInit {
@@ -257,7 +245,7 @@ fn main() -> ! {
                             {
                                 #[cfg(any(feature = "stm32f042",))]
                                 {
-                                    let gpiof = gpiof.clone();
+                                    let gpiof = gpiof_clone.clone();
                                     let (scl, sda) = cortex_m::interrupt::free(|cs| {
                                         let scl = gpiof
                                             .pf1
@@ -312,7 +300,7 @@ fn main() -> ! {
                                 && mosi_pin == "a7"
                                 && (speed >= 10 || speed <= 400)
                             {
-                                let gpioa = gpioa.clone();
+                                let gpioa = gpioa_clone.clone();
                                 let (sck, miso, mosi) = cortex_m::interrupt::free(move |cs| {
                                     (
                                         gpioa.pa5.into_alternate_af0(cs),
