@@ -41,45 +41,45 @@ trait GPIOExt {
     fn set_low(&self);
 }
 
-macro_rules! PORT {
-    ($port:ident) => {
-        impl PORTExt for $port::Parts {
-            fn clone(&self) -> Self {
-                unsafe { transmute_copy(&self) }
-            }
-        }
-    };
-}
-
 macro_rules! GPIO {
-    ($port:ident, $pin:ident, $name:ident) => {
-        struct $pin($port::$pin<Input<Floating>>);
-
-        let $name = $pin($port.$name);
-
-        impl GPIOExt for $pin {
-            fn to_output_push_pull(&self) {
-                cortex_m::interrupt::free(|cs| {
-                    let pin: $port::$pin<Input<Floating>> = unsafe { transmute_copy(&self) };
-                    pin.into_push_pull_output(cs);
-                });
+    ([$($port:ident : [$(($pin:ident, $name:ident)),+]),+]) => {
+        $(
+            impl PORTExt for $port::Parts {
+                fn clone(&self) -> Self {
+                    unsafe { transmute_copy(&self) }
+                }
             }
 
-            fn toggle(&self) {
-                let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
-                pin.toggle();
-            }
+            $(
+                struct $pin($port::$pin<Input<Floating>>);
 
-            fn set_high(&self) {
-                let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
-                pin.set_high();
-            }
+                let $name = $pin($port.$name);
 
-            fn set_low(&self) {
-                let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
-                pin.set_low();
-            }
-        }
+                impl GPIOExt for $pin {
+                    fn to_output_push_pull(&self) {
+                        cortex_m::interrupt::free(|cs| {
+                            let pin: $port::$pin<Input<Floating>> = unsafe { transmute_copy(&self) };
+                            pin.into_push_pull_output(cs);
+                        });
+                    }
+
+                    fn toggle(&self) {
+                        let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
+                        pin.toggle();
+                    }
+
+                    fn set_high(&self) {
+                        let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
+                        pin.set_high();
+                    }
+
+                    fn set_low(&self) {
+                        let mut pin: $port::$pin<Output<PushPull>> = unsafe { transmute_copy(&self) };
+                        pin.set_low();
+                    }
+                }
+            )+
+        )+
     };
 }
 
@@ -102,12 +102,6 @@ fn main() -> ! {
         #[cfg(any(feature = "stm32f072",))]
         let gpioc = p.GPIOC.split(&mut rcc);
         let gpiof = p.GPIOF.split(&mut rcc);
-
-        PORT!(gpioa);
-        PORT!(gpiob);
-        #[cfg(any(feature = "stm32f072",))]
-        PORT!(gpioc);
-        PORT!(gpiof);
 
         #[cfg(any(feature = "stm32f042",))]
         const HAS_I2C_ON_PORT_F: bool = true;
@@ -137,32 +131,30 @@ fn main() -> ! {
 
         let mut buffer: Vec<u8, BufferLength> = Default::default();
 
-        GPIO!(gpioa, PA0, pa0);
-        GPIO!(gpioa, PA1, pa1);
-        GPIO!(gpioa, PA3, pa3);
-        GPIO!(gpioa, PA4, pa4);
-        GPIO!(gpioa, PA5, pa5);
-        GPIO!(gpioa, PA6, pa6);
-        GPIO!(gpioa, PA7, pa7);
-        GPIO!(gpioa, PA8, pa8);
-        GPIO!(gpioa, PA9, pa9);
-        GPIO!(gpioa, PA10, pa10);
-        GPIO!(gpioa, PA11, pa11);
-        GPIO!(gpioa, PA12, pa12);
-        GPIO!(gpioa, PA13, pa13);
-        GPIO!(gpioa, PA14, pa14);
-        GPIO!(gpiob, PB3, pb3);
-        GPIO!(gpiob, PB4, pb4);
-        GPIO!(gpiof, PF0, pf0);
-        GPIO!(gpiof, PF1, pf1);
+        GPIO!(
+            [gpioa :
+                [
+                (PA0, pa0),
+                (PA1, pa1),
+                (PA3, pa3),
+                (PA4, pa4),
+                (PA5, pa5),
+                (PA6, pa6),
+                (PA7, pa7),
+                (PA8, pa8),
+                (PA9, pa9),
+                (PA10, pa10),
+                (PA11, pa11),
+                (PA12, pa12),
+                (PA13, pa13),
+                (PA14, pa14)
+                ]
+            ]
+        );
+        GPIO!([gpiob : [(PB3, pb3), (PB4, pb4)]]);
+        GPIO!([gpiof : [(PF0, pf0), (PF1, pf1)]]);
         #[cfg(any(feature = "stm32f072",))]
-        GPIO!(gpioc, PC6, pc6);
-        #[cfg(any(feature = "stm32f072",))]
-        GPIO!(gpioc, PC7, pc7);
-        #[cfg(any(feature = "stm32f072",))]
-        GPIO!(gpioc, PC8, pc8);
-        #[cfg(any(feature = "stm32f072",))]
-        GPIO!(gpioc, PC9, pc9);
+        GPIO!([gpioc : [(PC6, pc6), (PC7, pc7), (PC8, pc8), (PC9, pc9)]]);
 
         let apply_gpio = |name: &str, f: &dyn Fn(&dyn GPIOExt)| -> Reply {
             match name {
