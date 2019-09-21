@@ -52,11 +52,15 @@ fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
     );
 
     let mut apa = Apa102::new(spi);
-    let data: [RGB<u8>; 4] = [
+    let data: [RGB<u8>; 8] = [
         (0, 0, 0).into(),
         (255, 0, 0).into(),
         (0, 255, 0).into(),
         (0, 0, 255).into(),
+        (0, 0, 255).into(),
+        (0, 255, 0).into(),
+        (255, 0, 0).into(),
+        (0, 0, 0).into(),
     ];
 
     apa.write(data.iter().cloned()).unwrap();
